@@ -57,11 +57,11 @@ canvas{display:block;touch-action:none;background:#f5c060;border-radius:calc(8*v
 .t{display:none!important}@media(pointer:coarse){.k{display:none}.t{display:inline-flex!important}}
 .lab{max-width:900px;margin:14px auto 0}#lab[hidden]{display:none}#lab canvas{width:100%;height:170px;background:#222;border-radius:8px;touch-action:auto;cursor:default}
 #full{display:none}body.mob #full{display:block;margin:0 auto 10px;padding:8px 14px;font:inherit;font-size:15px;border:0;border-radius:20px;background:#000;color:#fff}
-body.full{padding:0;overflow:hidden;position:fixed;left:0;top:0;width:100vw;height:100vh;background:#b5b5b5}
+body.full{padding:0;overflow:hidden;position:fixed;left:0;top:0;width:var(--vw,100vw);height:var(--vh,100vh);background:#b5b5b5}
 body.full>*:not(#panel):not(#full):not(#msg.show){display:none!important}body.full #msg{position:fixed;left:50%;bottom:8px;transform:translateX(-50%);margin:0;padding:4px 10px;border-radius:12px;background:rgba(0,0,0,.75);color:#fff;font-size:13px;z-index:9;white-space:nowrap}
 body.full #panel{margin:0;border-radius:0}
-body.full #full{position:fixed;right:6px;top:6px;margin:0;padding:0;width:26px;height:26px;border-radius:50%;background:rgba(0,0,0,.18);color:#000;font-size:14px;line-height:26px;text-align:center;z-index:9}
-body.full.rot{width:100vh;height:100vw;transform-origin:0 0;transform:translateX(100vw) rotate(90deg)}
+body.full #full{position:absolute;right:8px;top:8px;margin:0;padding:0;width:34px;height:34px;border-radius:50%;background:rgba(0,0,0,.55);color:#fff;font-size:17px;line-height:34px;text-align:center;z-index:9}
+body.full.rot{width:var(--vh,100vh);height:var(--vw,100vw);transform-origin:0 0;transform:translateX(var(--vw,100vw)) rotate(90deg)}
 </style></head><body class="hw">
 <button id="full" aria-label="Full screen">⤢ Full screen</button>
 <div id="panel">
@@ -367,9 +367,9 @@ $('full').onclick=()=>setFull(!FULL);
 function fit(){const b=document.body,q=LAY[lay],real=b.classList.contains('real'),mn=Math.min(screen.width,screen.height),mini=mn>=744&&mn<768&&Math.max(screen.width,screen.height)>1100;
  b.style.setProperty('--u',(real?1/(q.upm||774/124)*(mini?163:132)/25.4:Math.max(.3,Math.min((innerWidth-28)/q.W,(innerHeight-245)/q.H,1.6)))+'px');
  ROT=FULL&&innerHeight>innerWidth;b.classList.toggle('rot',ROT);
- if(FULL){const L=ROT?innerHeight:innerWidth,S=ROT?innerWidth:innerHeight,ux=L/q.W,uy=S/q.H;b.style.setProperty('--u',Math.min(ux,uy)+'px');b.style.setProperty('--ux',ux+'px');b.style.setProperty('--uy',uy+'px')}else{b.style.removeProperty('--ux');b.style.removeProperty('--uy')}}
+ if(FULL){b.style.setProperty('--vw',innerWidth+'px');b.style.setProperty('--vh',innerHeight+'px');const L=ROT?innerHeight:innerWidth,S=ROT?innerWidth:innerHeight,ux=L/q.W,uy=S/q.H;b.style.setProperty('--u',Math.min(ux,uy)+'px');b.style.setProperty('--ux',ux+'px');b.style.setProperty('--uy',uy+'px')}else{b.style.removeProperty('--ux');b.style.removeProperty('--uy')}}
 for(const k in LAY){const b=document.createElement('button');b.textContent=k+' '+LAY[k].n;b.dataset.l=k;b.onclick=()=>{setLay(k);const q=LAY[k];say(k+': '+Math.round(q.W/(q.upm||774/124))+'×'+Math.round(q.H/(q.upm||774/124))+' mm')};$('lay').append(b)}
-addEventListener('resize',fit);{let k='G';try{k=localStorage.getItem('lay3')||'G'}catch{}setLay(LAY[k]?k:'G')}
+addEventListener('resize',fit);window.visualViewport&&visualViewport.addEventListener('resize',fit);{let k='G';try{k=localStorage.getItem('lay3')||'G'}catch{}setLay(LAY[k]?k:'G')}
 $('size').onclick=()=>{const v=document.body.classList.toggle('real');$('size').setAttribute('aria-pressed',v);fit()};
 const ROW=['KeyQ','KeyW','KeyE','KeyR','KeyT','KeyY','KeyU','KeyI','KeyO','KeyP'];
 addEventListener('keydown',e=>{if(e.metaKey||e.ctrlKey||e.altKey)return;const i=ROW.indexOf(e.code);
