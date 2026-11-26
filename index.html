@@ -58,7 +58,7 @@ canvas{display:block;touch-action:none;background:#f5c060;border-radius:calc(8*v
 body.phone{padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;justify-content:center;overflow:hidden}
 body.phone>*:not(#panel):not(#msg):not(#turn){display:none!important}body.phone #msg{margin-top:6px;font-size:12px;color:#555}
 #turn{display:none}@media (orientation:portrait){body.phone #turn{display:block;text-align:center;font-size:18px;padding:20px}body.phone #panel,body.phone #msg{display:none}}
-</style></head><body>
+</style></head><body class="hw">
 <p id="turn">Turn the phone sideways.</p>
 <div id="panel">
 <span class="t0 port" style="--x:0;--y:19">on</span><span class="t0 port" style="--x:0;--y:19">usb</span><span class="t0 port" style="--x:0;--y:19">in</span><span class="t0 port" style="--x:0;--y:19">out</span><span class="t0 port" style="--x:0;--y:19">vol</span>
@@ -75,7 +75,7 @@ body.phone>*:not(#panel):not(#msg):not(#turn){display:none!important}body.phone 
 <canvas id="s1" aria-label="Strip 1: slice"></canvas>
 </div>
 <div class="row" id="lay"></div>
-<div class="row"><button id="press" class="t">Press: drag up</button><button id="size" class="t" aria-pressed="false">Real size</button><button id="hw" aria-pressed="false">Hardware B</button><button id="lofi" aria-pressed="false">Lo-fi</button><button id="usb" hidden>Connect touch probe</button><label class="f">File<input id="file" type="file" accept="audio/*" style="position:absolute;opacity:0;width:1px"></label><span id="lenv"></span></div>
+<div class="row"><button id="press" class="t">Press: drag up</button><button id="size" class="t" aria-pressed="false">Real size</button><button id="hw" aria-pressed="true">Hardware B</button><button id="lofi" aria-pressed="true">Lo-fi</button><button id="usb" hidden>Connect touch probe</button><label class="f">File<input id="file" type="file" accept="audio/*" style="position:absolute;opacity:0;width:1px"></label><span id="lenv"></span></div>
 <p id="msg" role="status">Touch the bottom strip.</p>
 <div id="lab" class="lab" hidden><canvas id="raw"></canvas><div class="row"><label>Threshold <input id="thr" type="range" min="10" max="400" value="60"></label><button id="cal">Reset ranges</button><button id="base">New baseline</button><span id="labt"></span></div></div>
 <p class="k">Q…P: fingers on the bottom strip (several = sequence or poly) while the mouse plays scatter. Pressure: drag up/down, wheel over a finger, or ↑↓. Shift+click pins a finger, Esc clears pins. C: sequence/poly. Space: REC, H: HOLD (with REC: endless 8 s loop), M: source, N: the name (Shift+N: softly). 1…5: effect at full while held. Everything springs back on release, HOLD keeps it.</p>
@@ -258,7 +258,7 @@ if(typeof registerProcessor!=='undefined')registerProcessor('two',class extends 
 </script>
 <script>
 const $=i=>document.getElementById(i),say=t=>$('msg').textContent=t;
-let ctx,node,starting,mic=false,micTry,hw=false,lofi=false,st={g:[],scatter:0,len:0,rec:0,inp:0},peaks=null,hold=false,loop=false,self=false,recOn=false;
+let ctx,node,starting,mic=false,micTry,hw=true,lofi=true,st={g:[],scatter:0,len:0,rec:0,inp:0},peaks=null,hold=false,loop=false,self=false,recOn=false;
 const P=new Map(); // id -> {s:1|2,x}
 const send=o=>node&&node.port.postMessage(o);
 const LVN=9,lvMs=l=>1000/256*2**l,fmt=l=>l<2?lvMs(l).toFixed(1):Math.round(lvMs(l)),clampLv=l=>Math.max(0,Math.min(LVN-1,l));
@@ -342,12 +342,12 @@ function setLay(k){lay=k;$('panel').classList.toggle('lF',k==='F');$('panel').cl
  const[lx,,lw]=q.s1;document.querySelectorAll('.l16').forEach((e,i)=>set(e,{x:lx+lw*(i+.5)/16-9,y:q.led,w:18,h:18}));
  document.querySelectorAll('.port').forEach((e,i)=>set(e,{x:q.W*(k==='G'?[.099,.195,.67,.757,.866]:k==='F'?[.088,.28,.478,.655,.868]:[.13,.3,.47,.61,.81])[i],y:k==='F'?17:k==='G'?22:19}));
  document.querySelectorAll('#lay button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.l===k));
- try{localStorage.setItem('lay2',k)}catch{}fit()}
+ try{localStorage.setItem('lay3',k)}catch{}fit()}
 const PHONE=matchMedia('(pointer:coarse)').matches&&Math.min(screen.width,screen.height)<600;if(PHONE){document.body.classList.add('phone');addEventListener('pointerdown',()=>{const d=document.documentElement;if(!document.fullscreenElement&&d.requestFullscreen)d.requestFullscreen({navigationUI:'hide'}).catch(()=>{})},{once:true})}
 function fit(){const b=document.body,q=LAY[lay],real=b.classList.contains('real'),mn=Math.min(screen.width,screen.height),mini=mn>=744&&mn<768&&Math.max(screen.width,screen.height)>1100;
  b.style.setProperty('--u',(real?1/(q.upm||774/124)*(mini?163:132)/25.4:(PHONE?Math.min((innerWidth-12)/q.W,(innerHeight-30)/q.H):Math.max(.3,Math.min((innerWidth-28)/q.W,(innerHeight-245)/q.H,1.6))))+'px')}
 for(const k in LAY){const b=document.createElement('button');b.textContent=k+' '+LAY[k].n;b.dataset.l=k;b.onclick=()=>{setLay(k);const q=LAY[k];say(k+': '+Math.round(q.W/(q.upm||774/124))+'×'+Math.round(q.H/(q.upm||774/124))+' mm')};$('lay').append(b)}
-addEventListener('resize',fit);{let k='G';try{k=localStorage.getItem('lay2')||'G'}catch{}setLay(LAY[k]?k:'G')}
+addEventListener('resize',fit);{let k='G';try{k=localStorage.getItem('lay3')||'G'}catch{}setLay(LAY[k]?k:'G')}
 $('size').onclick=()=>{const v=document.body.classList.toggle('real');$('size').setAttribute('aria-pressed',v);fit()};
 const ROW=['KeyQ','KeyW','KeyE','KeyR','KeyT','KeyY','KeyU','KeyI','KeyO','KeyP'];
 addEventListener('keydown',e=>{if(e.metaKey||e.ctrlKey||e.altKey)return;const i=ROW.indexOf(e.code);
