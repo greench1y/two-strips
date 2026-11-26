@@ -262,7 +262,7 @@ if(typeof registerProcessor!=='undefined')registerProcessor('two',class extends 
 </script>
 <script>
 const $=i=>document.getElementById(i);let sayT;const say=t=>{const m=$('msg');m.textContent=t;m.classList.add('show');clearTimeout(sayT);sayT=setTimeout(()=>m.classList.remove('show'),3500)};
-let lastLoad=null,ctxMic=false,ctx,node,starting,mic=false,micTry,hw=true,lofi=true,st={g:[],scatter:0,len:0,rec:0,inp:0},peaks=null,hold=false,loop=false,self=false,recOn=false;
+let micStream=null,lastLoad=null,ctxMic=false,ctx,node,starting,mic=false,micTry,hw=true,lofi=true,st={g:[],scatter:0,len:0,rec:0,inp:0},peaks=null,hold=false,loop=false,self=false,recOn=false;
 const P=new Map(); // id -> {s:1|2,x}
 const send=o=>node&&node.port.postMessage(o);
 const LVN=9,lvMs=l=>1000/256*2**l,fmt=l=>l<2?lvMs(l).toFixed(1):Math.round(lvMs(l)),clampLv=l=>Math.max(0,Math.min(LVN-1,l));
@@ -292,7 +292,7 @@ function start(){if(ctx&&ctx.state!=='running')ctx.resume();return starting??=(a
 async function needMic(){if(mic)return true;if(!navigator.mediaDevices){say('The mic only works on https or localhost.');return false}
  try{if(navigator.audioSession)navigator.audioSession.type='play-and-record'}catch{}
  micTry??=navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}});const st0=start();
- try{const s=await micTry;await st0;
+ try{const s=await micTry;micStream=s;await st0;
   if((window.MOB||/iP(hone|ad|od)/.test(navigator.userAgent)||navigator.maxTouchPoints>1)&&!mic){try{node.disconnect()}catch{}try{await ctx.close()}catch{}ctx=node=starting=null;ctxMic=true;await start()}ctxMic=true;
   if(!mic){ctx.createMediaStreamSource(s).connect(node);mic=true;say('Mic is on. Headphones recommended.')}if(ctx.state!=='running')ctx.resume();return true}
  catch(e){micTry=null;say('No mic access ('+(e&&e.name)+'). Allow the mic in browser settings, or record from self.');return false}}
@@ -300,8 +300,12 @@ async function rec(v){if(v){recWant=true;const mp=!self&&!mic&&navigator.mediaDe
   if(hold){if(loop){loop=false;push();return}if(!self&&!mic&&!await needMic())return;loop=true;recOn=false;push();return}
   if(!self&&!mic){const ok=await needMic();if(!ok)return;if(!recWant){say('Mic is on. Hold REC to record.');return}}
   if(!recWant)return}else recWant=false;
- recOn=v&&recWant&&!loop;$('rec').classList.toggle('on',recOn);push()}
+ recOn=v&&recWant&&!loop;if(!recOn)rec.q=rec.mx=0;$('rec').classList.toggle('on',recOn);push()}
 let recWant=false;
+for(const ev of['pointerdown','touchend','pointerup'])addEventListener(ev,()=>{if(ctx&&ctx.state!=='running')try{ctx.resume()}catch{}},true);
+// диагностика: микрофон включён, запись идёт, а сигнала нет
+setInterval(()=>{if(!(recOn&&mic&&!self))return;rec.q=(rec.q||0)+1;rec.mx=Math.max(rec.mx||0,st.inp||0);if(rec.q===4&&rec.mx<.002){const t=micStream&&micStream.getAudioTracks()[0];say('Mic is silent: audio '+(ctx&&ctx.state)+', mic '+(t?t.readyState+(t.muted?' muted':'')+(t.enabled?'':' off'):'none')+' @'+(ctx&&ctx.sampleRate))}},250);
+
 function setHold(){hold=!hold;if(!hold)loop=false;else if(recOn){recOn=false;loop=true;$('rec').classList.toggle('on',false)}$('hold').setAttribute('aria-pressed',hold);push();spring()}
 function setPoly(){poly=!poly;$('poly').style.setProperty('--k',poly?61:9);$('poly').setAttribute('aria-label','Fingers: '+(poly?'poly':'sequence'));push()}
 function setSrc(){self=!self;$('src').style.setProperty('--k',self?61:9);say(self?'Records its own output.':'Records from the mic or the input jack.');push()}
