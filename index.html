@@ -272,7 +272,7 @@ function press(d,x){const f=[...P.values()].filter(p=>p.s===1);let t=f[f.length-
 function demo(sr){const d=new Float32Array(sr*5|0),f=[110,164.8,220,277.2,329.6,440,246.9,554.4],seg=sr*.625;
  for(let i=0;i<d.length;i++){const t=(i%seg)/sr,h=f[i/seg|0];let s=0;for(let k=1;k<7;k++)s+=Math.sin(2*Math.PI*h*k*t)*Math.exp(-t*k*2)/k;d[i]=s*Math.exp(-t*4)*Math.min(1,t*300)*.4}return d}
 function start(){if(ctx&&ctx.state!=='running')ctx.resume();return starting??=(async()=>{
- try{if(navigator.audioSession)navigator.audioSession.type='playback'}catch{}
+ try{if(navigator.audioSession&&!micTry)navigator.audioSession.type='playback'}catch{}
  ctx=new(window.AudioContext||webkitAudioContext)({latencyHint:'interactive'});ctx.resume();
  if(!ctx.audioWorklet)throw Error('https or localhost required');
  const code=$('core').textContent,du='data:text/javascript;charset=utf-8,'+encodeURIComponent(code);
@@ -280,17 +280,21 @@ function start(){if(ctx&&ctx.state!=='running')ctx.resume();return starting??=(a
  node=new AudioWorkletNode(ctx,'two',{numberOfInputs:1,outputChannelCount:[2]});node.connect(ctx.destination);
  node.port.onmessage=m=>{st=m.data;if(st.peaks)peaks=st.peaks};
  const d=demo(ctx.sampleRate);send({load:d});push();for(const k in fxv)setFx(k);say('A finger is a slice. Press harder for a longer one (slide up).')})().catch(e=>{say('Audio failed to start: '+e.message);throw e})}
-async function needMic(){if(mic)return true;await start();try{if(navigator.audioSession)navigator.audioSession.type='play-and-record'}catch{}return micTry??=navigator.mediaDevices?navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}}).then(s=>{ctx.createMediaStreamSource(s).connect(node);mic=true;say('Mic is on. Headphones recommended.');return true}).catch(()=>{micTry=null;say('No mic access. Load a file or record from self.');return false}):(say('The mic only works on https or localhost.'),micTry=null,false)}
-async function rec(v){if(v){await start();recWant=true;
+async function needMic(){if(mic)return true;if(!navigator.mediaDevices){say('The mic only works on https or localhost.');return false}
+ try{if(navigator.audioSession)navigator.audioSession.type='play-and-record'}catch{}
+ micTry??=navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}});const st0=start();
+ try{const s=await micTry;await st0;if(!mic){ctx.createMediaStreamSource(s).connect(node);mic=true;say('Mic is on. Headphones recommended.')}if(ctx.state!=='running')ctx.resume();return true}
+ catch(e){micTry=null;say('No mic access ('+(e&&e.name)+'). Allow the mic in browser settings, or record from self.');return false}}
+async function rec(v){if(v){recWant=true;const mp=!self&&!mic&&navigator.mediaDevices?needMic():null;await start();if(mp&&!await mp)return;
   if(hold){if(loop){loop=false;push();return}if(!self&&!mic&&!await needMic())return;loop=true;recOn=false;push();return}
-  if(!self&&!mic){const ok=await needMic();if(ok)say('Mic is on. Hold REC again to record.');return}
+  if(!self&&!mic){const ok=await needMic();if(!ok)return;if(!recWant){say('Mic is on. Hold REC to record.');return}}
   if(!recWant)return}else recWant=false;
  recOn=v&&recWant&&!loop;$('rec').classList.toggle('on',recOn);push()}
 let recWant=false;
 function setHold(){hold=!hold;if(!hold)loop=false;else if(recOn){recOn=false;loop=true;$('rec').classList.toggle('on',false)}$('hold').setAttribute('aria-pressed',hold);push();spring()}
 function setPoly(){poly=!poly;$('poly').style.setProperty('--k',poly?61:9);$('poly').setAttribute('aria-label','Fingers: '+(poly?'poly':'sequence'));push()}
 function setSrc(){self=!self;$('src').style.setProperty('--k',self?61:9);say(self?'Records its own output.':'Records from the mic or the input jack.');push()}
-const R=$('rec');R.onpointerdown=e=>{try{R.setPointerCapture(e.pointerId)}catch{}rec(true)};R.onpointerup=R.onpointercancel=()=>rec(false);
+const R=$('rec');R.onpointerdown=e=>{try{R.setPointerCapture(e.pointerId)}catch{}rec(true)};R.onpointerup=R.onpointercancel=()=>rec(false);R.oncontextmenu=e=>e.preventDefault();
 $('lofi').onclick=()=>{lofi=!lofi;$('lofi').setAttribute('aria-pressed',lofi);push()};
 $('hw').onclick=()=>{hw=!hw;$('hw').setAttribute('aria-pressed',hw);document.body.classList.toggle('hw',hw);spring();for(const k in fxv)setFx(k);push();say(hw?'Hardware B: mono, 16 grains, 24 pads, up to 4 fingers, fingers closer than 9% of the strip merge.':'Full mode.')};
 $('hold').onclick=setHold;$('src').onclick=setSrc;$('poly').onclick=setPoly;
