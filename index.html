@@ -58,9 +58,9 @@ canvas{display:block;touch-action:none;background:#f5c060;border-radius:calc(8*v
 .lab{max-width:900px;margin:14px auto 0}#lab[hidden]{display:none}#lab canvas{width:100%;height:170px;background:#222;border-radius:8px;touch-action:auto;cursor:default}
 body.phone{padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;justify-content:center;overflow:hidden}
 body.phone>*:not(#panel):not(#msg):not(#turn){display:none!important}body.phone #msg{margin-top:6px;font-size:12px;color:#555}
-#turn{display:none}@media (orientation:portrait){body.phone #turn{display:block;text-align:center;font-size:18px;padding:20px}body.phone #panel,body.phone #msg{display:none}}
+#turn{display:none}
+body.phone.rot{min-height:0;position:fixed;left:0;top:0;width:100vh;height:100vw;transform-origin:0 0;transform:translateX(100vw) rotate(90deg);padding:env(safe-area-inset-left) env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom)}
 </style></head><body class="hw">
-<p id="turn">Turn the phone sideways.</p>
 <div id="panel">
 <span class="t0 port" style="--x:0;--y:19">on</span><span class="t0 port" style="--x:0;--y:19">usb</span><span class="t0 port" style="--x:0;--y:19">in</span><span class="t0 port" style="--x:0;--y:19">out</span><span class="t0 port" style="--x:0;--y:19">vol</span>
 <div class="g" id="g-rec"><button id="rec" aria-label="REC" style="--x:0;--y:0;--w:91;--h:91"></button><span class="t0" style="--x:26;--y:108">rec</span><span class="led" id="recLed" style="--x:66;--y:99;--w:18;--h:18"></span></div>
@@ -344,12 +344,16 @@ function setLay(k){lay=k;$('panel').classList.toggle('lF',k==='F');$('panel').cl
  document.querySelectorAll('.port').forEach((e,i)=>set(e,{x:q.W*(k==='G'?[.099,.195,.67,.757,.866]:k==='F'?[.088,.28,.478,.655,.868]:[.13,.3,.47,.61,.81])[i],y:k==='F'?17:k==='G'?22:19}));
  document.querySelectorAll('#lay button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.l===k));
  try{localStorage.setItem('lay3',k)}catch{}fit()}
-const PHONE=matchMedia('(pointer:coarse)').matches&&Math.min(screen.width,screen.height)<600;if(PHONE){document.body.classList.add('phone');const fs=()=>{const d=document.documentElement,r=d.requestFullscreen||d.webkitRequestFullscreen;if(!(document.fullscreenElement||document.webkitFullscreenElement)&&r)try{const p=r.call(d,{navigationUI:'hide'});p&&p.then(()=>screen.orientation?.lock?.('landscape').catch(()=>{})).catch(()=>{})}catch{}};addEventListener('pointerup',fs,true);addEventListener('touchend',fs,true);
+const PHONE=matchMedia('(pointer:coarse)').matches&&Math.min(screen.width,screen.height)<600;let ROT=false;
+if(PHONE){const gb=Element.prototype.getBoundingClientRect;Element.prototype.getBoundingClientRect=function(){const r=gb.call(this);if(!ROT)return r;const W=innerWidth,o={left:r.top,top:W-r.right,width:r.height,height:r.width,right:r.bottom,bottom:W-r.left};o.x=o.left;o.y=o.top;return o};
+ for(const P0 of[MouseEvent.prototype,window.Touch&&Touch.prototype].filter(Boolean)){const dx=Object.getOwnPropertyDescriptor(P0,'clientX'),dy=Object.getOwnPropertyDescriptor(P0,'clientY');if(!dx||!dy)continue;
+  Object.defineProperty(P0,'clientX',{configurable:true,get(){return ROT?dy.get.call(this):dx.get.call(this)}});Object.defineProperty(P0,'clientY',{configurable:true,get(){return ROT?innerWidth-dx.get.call(this):dy.get.call(this)}})}}
+if(PHONE){document.body.classList.add('phone');const fs=()=>{const d=document.documentElement,r=d.requestFullscreen||d.webkitRequestFullscreen;if(!(document.fullscreenElement||document.webkitFullscreenElement)&&r)try{const p=r.call(d,{navigationUI:'hide'});p&&p.then(()=>screen.orientation?.lock?.('landscape').catch(()=>{})).catch(()=>{})}catch{}};addEventListener('pointerup',fs,true);addEventListener('touchend',fs,true);
  const sa=matchMedia('(display-mode: standalone),(display-mode: fullscreen)').matches||navigator.standalone;if(!sa&&!document.documentElement.requestFullscreen&&!document.documentElement.webkitRequestFullscreen)setTimeout(()=>say('Full screen: Share → Add to Home Screen, then open it from there.'),50)}
 function fit(){const b=document.body,q=LAY[lay],real=b.classList.contains('real'),mn=Math.min(screen.width,screen.height),mini=mn>=744&&mn<768&&Math.max(screen.width,screen.height)>1100;
- b.style.setProperty('--u',(real?1/(q.upm||774/124)*(mini?163:132)/25.4:(PHONE?Math.min((innerWidth-12)/q.W,(innerHeight-30)/q.H):Math.max(.3,Math.min((innerWidth-28)/q.W,(innerHeight-245)/q.H,1.6))))+'px')}
+ b.style.setProperty('--u',(real?1/(q.upm||774/124)*(mini?163:132)/25.4:(PHONE?(ROT=innerHeight>innerWidth,b.classList.toggle('rot',ROT),Math.min(((ROT?innerHeight:innerWidth)-12)/q.W,((ROT?innerWidth:innerHeight)-30)/q.H)):Math.max(.3,Math.min((innerWidth-28)/q.W,(innerHeight-245)/q.H,1.6))))+'px')}
 for(const k in LAY){const b=document.createElement('button');b.textContent=k+' '+LAY[k].n;b.dataset.l=k;b.onclick=()=>{setLay(k);const q=LAY[k];say(k+': '+Math.round(q.W/(q.upm||774/124))+'×'+Math.round(q.H/(q.upm||774/124))+' mm')};$('lay').append(b)}
-addEventListener('resize',fit);{let k='G';try{k=localStorage.getItem('lay3')||'G'}catch{}setLay(LAY[k]?k:'G')}
+addEventListener('resize',fit);{let k='G';try{k=localStorage.getItem('lay3')||'G'}catch{}setLay(PHONE?'G':LAY[k]?k:'G')}
 $('size').onclick=()=>{const v=document.body.classList.toggle('real');$('size').setAttribute('aria-pressed',v);fit()};
 const ROW=['KeyQ','KeyW','KeyE','KeyR','KeyT','KeyY','KeyU','KeyI','KeyO','KeyP'];
 addEventListener('keydown',e=>{if(e.metaKey||e.ctrlKey||e.altKey)return;const i=ROW.indexOf(e.code);
